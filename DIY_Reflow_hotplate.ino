@@ -49,9 +49,8 @@ String Names[] = {
     "Off",
     "Heat",
     "Soak",
-    "Blast",
-    "Reflow", // I am sure there is a real name for this stage but I dont know it and this seemed cool... thats funny cuz the next stage is Cool..
-    "Cool",
+    "Blast", // I am sure there is a real name for this stage but I dont know it and this seemed cool...
+    "Reflow",
 };
 
 MAX6675 thermocouple(thermoCLK, thermoCS, thermoDO); // Start MAX6675 SPI communication
