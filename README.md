@@ -1,5 +1,5 @@
 ## DIY Reflow Hot Plate
-This is a rework of the Electronoobs DIY reflow hotplate project found here. https://electronoobs.com/eng_arduino_tut155.php
+This is a rework of the Electronoobs DIY reflow hotplate project [found here](https://electronoobs.com/eng_arduino_tut155.php).
 
 I did a major rewrite of the control code and added PID control of the heater. This made a big difference to the heating and
 in my opinion helps alot.
