@@ -28,7 +28,7 @@ int thermoCLK = 6; // Clock pin for MAX6675
 int but_1 = 11;    // Button 1 input
 
 // Variables
-double Setpoint, Input, Output;
+double Setpoint, Input, Output;              // variable needed for the PID loop
 unsigned int millis_before, millis_before_2; // used for time tracking in the loop
 unsigned int millis_now = 0;                 // used to keep track of the current time of the loop
 int refresh_rate = 1000;                     // how often to update the display in milliseconds
