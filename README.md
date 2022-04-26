@@ -10,7 +10,7 @@ portion of the system if I like.
 I would very much like to add some features like a encoder dial to adjust the max tempurture on the fly without having to
 adjust the code and re-upload.
 
-I used the PID library by Brett Beauregard. Docs here: [Link](https://playground.arduino.cc/Code/PIDLibrary/) Currently using version 1.2.0
+I used the PID library by Brett Beauregard. [Docs here](https://playground.arduino.cc/Code/PIDLibrary/) Currently using version 1.2.0
 
 ## PID tuning:
 I used [this page](https://www.compuphase.com/electronics/reflowsolderprofiles.htm#_) to help me with the PID tuning. 
