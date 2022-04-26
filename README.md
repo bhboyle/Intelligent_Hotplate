@@ -14,4 +14,4 @@ I used the PID library by Brett Beauregard. [Docs here](https://playground.ardui
 
 ## PID tuning:
 I used [this page](https://www.compuphase.com/electronics/reflowsolderprofiles.htm#_) to help me with the PID tuning. 
-It help me know which numbers to change and how. I started with a P value od 20 and zero both I and D. This work faily well but through iterative testing I settled on P=7 I=.01 and D=0. Your setup may be different but the page above would help you alot. 
+It help me know which numbers to change and how. I started with a P value of 20 and zero for both I and D. This worked fairly well but through iterative testing I settled on P=7 I=.01 and D=0. Your setup may be different but the page above would help you alot. 
