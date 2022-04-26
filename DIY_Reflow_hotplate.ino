@@ -29,34 +29,34 @@ int but_1 = 11;    // Button 1 input
 
 // Variables
 double Setpoint, Input, Output;
-unsigned int millis_before, millis_before_2;
-unsigned int millis_now = 0;
-int refresh_rate = 1000;
-int temp_refresh_rate = 300;
-unsigned int seconds = 0;
-bool but_1_state = false;
-unsigned long but_1_timer = 0;
-int max_temp = 260;
-float temp_setpoint = 0;
-float temperature = 0;
-int heatStage = 0;
-int stage_2_set_point = 150;
-unsigned long stage2Timer = 0;
-unsigned long stage4Timer = 0;
-unsigned long soakTime = 100;
-int reflowTime = 60;
+unsigned int millis_before, millis_before_2; // used for time tracking in the loop
+unsigned int millis_now = 0;                 // used to keep track of the current time of the loop
+int refresh_rate = 1000;                     // how often to update the display in milliseconds
+int temp_refresh_rate = 300;                 // how often to check the temperature in milliseconds
+unsigned int seconds = 0;                    // used in the display to show how long the sequence has been running
+bool but_1_state = false;                    // used to track of the button has been pushed. used for debouncing the button
+unsigned long but_1_timer = 0;               // used for checking the time for debouncing the button push
+int max_temp = 260;                          // ****** this is the high temperature set point. *******
+float temperature = 0;                       // this is the varilable that holds the current temperature reading
+int heatStage = 0;                           // used for keeping track of where we are in the heating sequence
+int stage_2_set_point = 150;                 // this is the "soak" temperature set point
+unsigned long stage2Timer = 0;               // used to keeping track of when we went into stage two
+unsigned long stage4Timer = 0;               // used for keeping track of when we went into stage 4
+unsigned long soakTime = 100;                // how long to soak the board for in seconds
+int reflowTime = 60;                         // how long to reflow the board for in seconds
 String Names[] = {
+    // this is the text displayed in the display in the various stages
     "Off",
     "Heat",
     "Soak",
     "Blast",
-    "Reflow", // I am sure there is a real name for this stage but I dont know it and this seemed cool... thats funny cuz the next stage is cool..
+    "Reflow", // I am sure there is a real name for this stage but I dont know it and this seemed cool... thats funny cuz the next stage is Cool..
     "Cool",
 };
 
 MAX6675 thermocouple(thermoCLK, thermoCS, thermoDO); // Start MAX6675 SPI communication
 LiquidCrystal_I2C lcd(0x27, 20, 4);                  // Address could be 0x3f or 0x27
-PID myPID(&Input, &Output, &Setpoint, 7, .01, 0, DIRECT);
+PID myPID(&Input, &Output, &Setpoint, 7, .01, 0, DIRECT); // create the PID object
 
 void setup()
 {
@@ -68,13 +68,10 @@ void setup()
   pinMode(SSR, OUTPUT); // Start with the SSR off
   digitalWrite(SSR, LOW);
 
-  // Define the INPUTS
+  // Define the button input
   pinMode(but_1, INPUT_PULLUP);
-  // pinMode(but_2, INPUT_PULLUP);
 
   Serial.begin(9600);
-  // Serial.
-  ("Startup");
   lcd.init();      // Init the LCD
   lcd.backlight(); // Activate backlight
 
@@ -85,75 +82,75 @@ void setup()
 void loop()
 {
 
-  millis_now = millis();
-  if (millis_now - millis_before_2 > temp_refresh_rate)
+  millis_now = millis();                                // track the current time
+  if (millis_now - millis_before_2 > temp_refresh_rate) // if it has been more than RefreshRate then get the current temperature
   {
     millis_before_2 = millis();
-    temperature = thermocouple.readCelsius();
-    Input = temperature;
+    temperature = thermocouple.readCelsius(); // read the temperature sensor
+    Input = temperature;                      // set the input field for the PID loop
   }
 
-  myPID.Compute();
+  myPID.Compute(); // run the PID compute cycle
 
   // This is the first heating stage if handler
   if (heatStage == 1)
   {
-    Setpoint = stage_2_set_point;
-    myPID.Compute();
+    Setpoint = stage_2_set_point; // set the setpoint for the PID
+    myPID.Compute();              // run the compute again becuase we just made a change to the setpoint
 
-    analogWrite(SSR, Output); // We change the Duty Cycle
+    analogWrite(SSR, Output); // We change the Duty Cycle of the relay
 
-    if (temperature >= stage_2_set_point)
+    if (temperature >= stage_2_set_point) // check to see if se need to move onto the next stage
     {
-      heatStage++;
-      stage2Timer = seconds;
+      heatStage++;           // incrment the stage counter and
+      stage2Timer = seconds; // track the current time
     }
   }
 
   // This is the second heating stage if handler
   if (heatStage == 2)
   {
-    analogWrite(SSR, Output); // We change the Duty Cycle
+    analogWrite(SSR, Output); // We change the Duty Cycle of the relay
 
-    int stage2Temp = seconds - stage2Timer;
-    if (stage2Temp > soakTime)
+    int stage2Temp = seconds - stage2Timer; // see how long we have been in stage two
+    if (stage2Temp > soakTime)              // if longer than the soakTime variable
     {
-      heatStage++;
+      heatStage++; // move to the next stage
     }
   }
 
   // This is the third heating stage if handler
   if (heatStage == 3)
   {
-    Setpoint = max_temp;
-    myPID.Compute();
+    Setpoint = max_temp; // now set the Setpont to the max_temp setting
+    myPID.Compute();     // recalculate the PID value becuase we just changed the Setpoint
 
-    analogWrite(SSR, Output); // We change the Duty Cycle
+    analogWrite(SSR, Output); // We change the Duty Cycle of the relay
 
-    if (temperature >= max_temp)
+    if (temperature >= max_temp) // check to see if we reached the max_temp set point
     {
-      heatStage++;
-      stage4Timer = seconds;
+      heatStage++;           // if we did move on to the next stage
+      stage4Timer = seconds; // take note of the time we moved into the next stage
     }
   }
 
   // This is the forth heating stage if handler
   if (heatStage == 4)
   {
-    analogWrite(SSR, Output); // We change the Duty Cycle
+    analogWrite(SSR, Output); // We change the Duty Cycle of the relay
 
-    int temp = seconds - stage4Timer;
-    if (temp > reflowTime)
+    int temp = seconds - stage4Timer; // see how long we have been in this stage
+    if (temp > reflowTime)            // if we have been here for the full time
     {
-      heatStage++;
-      analogWrite(SSR, LOW);
+      heatStage++;           // move on to the next stage
+      analogWrite(SSR, LOW); // turn of the relay
     }
   }
 
   // This is the fifth and last heating stage if handler
   if (heatStage == 5)
   {
-    lcd.clear();
+    lcd.clear(); // clear the display and write complete to let the user know we are done
     lcd.setCursor(0, 1);
     lcd.print("      COMPLETE      ");
     seconds = 0; // Reset timer
@@ -161,15 +158,14 @@ void loop()
     delay(5000);
   }
 
-  // millis_now = millis();
-  if (millis_now - millis_before > refresh_rate)
+  if (millis_now - millis_before > refresh_rate) // ever second update the display
   {
-    millis_before = millis();
-    seconds++; // We count time
+    millis_before = millis(); // track the current time
+    seconds++;                // increment the time counter
 
-    Serial.println(temperature);
+    Serial.println(temperature); // output the temerature to the serial monitor for ploting
 
-    if (heatStage == 0)
+    if (heatStage == 0) // if we are in stage zero the do the display for that stage
     {
       digitalWrite(SSR, LOW);
       lcd.clear();
@@ -182,17 +178,17 @@ void loop()
       lcd.print("Stage - ");
       lcd.print(Names[heatStage]);
       lcd.setCursor(0, 3);
-      if (temperature > 50)
+      if (temperature > 50) // check the temperatue and display Hot if above 50 degrees
       {
         lcd.print("       HOT!!!       ");
       }
-      else
+      else // if not just say Not Running
       {
         lcd.print("NOT RUNNING");
       }
     } // end of heatStage == 0
 
-    else if (heatStage > 0 && heatStage < 7)
+    else if (heatStage > 0 && heatStage < 7) // display the appropriate thing if a sequence is running
     {
       lcd.clear();
       lcd.setCursor(0, 0);
@@ -212,30 +208,29 @@ void loop()
   }   // end of millis_now - millis_before > refresh_rate
 
   // Button press handling
-
   if (!digitalRead(but_1) && !but_1_state)
   {
-    but_1_state = true;
-    but_1_timer = millis();
+    but_1_state = true;     // change the button press flag
+    but_1_timer = millis(); // track the current time of the button press
     // if the sequence is not running and the button is pressed, start it
     if (heatStage < 1)
     {
-      heatStage = 1;
-      seconds = 0;
+      heatStage = 1; // put us in the first stage of the sequence
+      seconds = 0;   // start the clock for the display
     }
     else if (heatStage > 0)
     { // if the sequence is running and the button is pressed, stop it
-      heatStage = 0;
+      heatStage = 0; // turn everything off
       digitalWrite(SSR, LOW);
     }
   } // end of button press check
 
   // reset the state flag for button press if the be-dounce timer has elapsed
-  if (but_1_state)
+  if (but_1_state) // if the flag is true then
   {
-    if (millis() - but_1_timer > 250)
+    if (millis() - but_1_timer > 250) // check the timer and see of 250 milliseconds have elapsed
     {
-      but_1_state = false;
+      but_1_state = false; // if they have reset the button press flag
     }
   } // end of button press timer reset
 
