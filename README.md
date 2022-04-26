@@ -1,3 +1,4 @@
+##DIY Reflow Hot Plate
 This is a rework of the Electronoobs DIY reflow hotplate project found here. https://electronoobs.com/eng_arduino_tut155.php
 
 I did a major rewrite of the control code and added PID control of the heater. This made a big difference to the heating and
@@ -11,6 +12,6 @@ adjust the code and re-upload.
 
 I used the PID library by Brett Beauregard. Docs here: https://playground.arduino.cc/Code/PIDLibrary/ Currently using version 1.2.0
 
-PID tuning:
+##PID tuning:
 I used this page to help me with the PID tuning. https://www.compuphase.com/electronics/reflowsolderprofiles.htm#_
 It help me know which numbers to change and how. I started with a P value od 20 and zero both I and D. This work faily well but through iterative testing I settled on P=7 I=.01 and D=0. Your setup may be different but the page above would help you alot. 
