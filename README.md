@@ -1,5 +1,5 @@
 ## DIY Reflow Hot Plate
-This is a rework of the Electronoobs DIY reflow hotplate project [found here](https://electronoobs.com/eng_arduino_tut155.php).
+This is a rework of the Electronoobs DIY reflow hotplate project [found here](https://electronoobs.com/eng_arduino_tut155.php). The scheatic is the same and that is the reason I do not include a schematic here. The biggest difference between his and mine is that I currently use only one button and no rotary encoder. The one button is used to start and stop the heating sequence.
 
 I did a major rewrite of the control code and added PID control of the heater. This made a big difference to the heating and
 in my opinion helps alot.
