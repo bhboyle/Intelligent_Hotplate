@@ -1,11 +1,12 @@
 ## DIY Reflow Hot Plate
 This is a rework of the Electronoobs DIY reflow hotplate project [found here](https://electronoobs.com/eng_arduino_tut155.php). The scheatic is the same and that is the reason I do not include a schematic here. The biggest difference between his and mine is that I currently use only one button and no rotary encoder. The one button is used to start and stop the heating sequence.
 
-I did a major rewrite of the control code and added PID control of the heater. This made a big difference to the heating and
-in my opinion helps alot.
+I did a major rewrite of the control code and added PID control of the heater. This made a big difference to the heating and in my opinion helps alot.
 
 I also used a [small electric hot plate](https://www.amazon.ca/gp/product/B08R6F5JH8/ref=ppx_yo_dt_b_search_asin_image?ie=UTF8&psc=1) rather than a cloths iron because it was cheap and this way I can make changes to that
 portion of the system if I like. 
+
+Currently the coding style is not how I would do things. Everything is in the loop with no functions. I am of two minds about this and for smaller applications like this one I dont mind it all in the loop. I could see breaking it up and using functions would make it easyer to undestand but for a one off application like this one I dont think I will.
 
 I would very much like to add some features like a encoder dial to adjust the max tempurture on the fly without having to
 adjust the code and re-upload.
