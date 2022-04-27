@@ -63,12 +63,10 @@ void setup()
   // turn the PID on
   myPID.SetMode(AUTOMATIC);
 
-  // Define the OUTPUTs
-  pinMode(SSR, OUTPUT); // Start with the SSR off
-  digitalWrite(SSR, LOW);
+  pinMode(SSR, OUTPUT);   // Define the OUTPUT for the Solid State Relay
+  digitalWrite(SSR, LOW); // Start with the SSR off
 
-  // Define the button input
-  pinMode(but_1, INPUT_PULLUP);
+  pinMode(but_1, INPUT_PULLUP); // Define the button input
 
   Serial.begin(9600);
   lcd.init();      // Init the LCD
@@ -91,7 +89,7 @@ void loop()
 
   myPID.Compute(); // run the PID compute cycle
 
-  // This is the first heating stage if handler
+  // This is the first heating stage handler
   if (heatStage == 1)
   {
     Setpoint = stage_2_set_point; // set the setpoint for the PID
@@ -106,7 +104,7 @@ void loop()
     }
   }
 
-  // This is the second heating stage if handler
+  // This is the second heating stage handler
   if (heatStage == 2)
   {
     analogWrite(SSR, Output); // We change the Duty Cycle of the relay
@@ -118,7 +116,7 @@ void loop()
     }
   }
 
-  // This is the third heating stage if handler
+  // This is the third heating stage handler
   if (heatStage == 3)
   {
     Setpoint = max_temp; // now set the Setpont to the max_temp setting
@@ -133,7 +131,7 @@ void loop()
     }
   }
 
-  // This is the forth heating stage if handler
+  // This is the forth heating stage handler
   if (heatStage == 4)
   {
     analogWrite(SSR, Output); // We change the Duty Cycle of the relay
@@ -146,7 +144,7 @@ void loop()
     }
   }
 
-  // This is the fifth and last heating stage if handler
+  // This is the fifth and last heating stage handler
   if (heatStage == 5)
   {
     lcd.clear(); // clear the display and write complete to let the user know we are done
@@ -157,14 +155,14 @@ void loop()
     delay(5000);
   }
 
-  if (millis_now - millis_before > refresh_rate) // ever second update the display
+  if (millis_now - millis_before > refresh_rate) // every second update the display
   {
     millis_before = millis(); // track the current time
     seconds++;                // increment the time counter
 
     Serial.println(temperature); // output the temerature to the serial monitor for ploting
 
-    if (heatStage == 0) // if we are in stage zero the do the display for that stage
+    if (heatStage == 0) // if we are in stage zero then update display for that stage
     {
       digitalWrite(SSR, LOW);
       lcd.clear();
@@ -181,7 +179,7 @@ void loop()
       {
         lcd.print("       HOT!!!       ");
       }
-      else // if not just say Not Running
+      else // if not, just say Not Running
       {
         lcd.print("NOT RUNNING");
       }
