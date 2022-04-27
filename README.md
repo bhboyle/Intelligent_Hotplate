@@ -18,4 +18,4 @@ It help me know which numbers to change and how. I started with a P value of 20 
 
 ## Coding Environment
 I think it is worth noting that this was coded in VS Code using the arduino add on. I have been coding for many years now and I find this environment very pleasing to use and even makes me want to code more.
-I Used the built in library manager to add the PID library.
+I used the built in library manager to add the PID library.
