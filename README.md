@@ -12,6 +12,10 @@ adjust the code and re-upload.
 
 I used the PID library by Brett Beauregard. [Docs here](https://playground.arduino.cc/Code/PIDLibrary/) Currently using version 1.2.0
 
-## PID tuning:
+## PID Tuning:
 I used [this page](https://www.compuphase.com/electronics/reflowsolderprofiles.htm#_) to help me with the PID tuning. 
 It help me know which numbers to change and how. I started with a P value of 20 and zero for both I and D. This worked fairly well but through iterative testing I settled on P=7 I=.01 and D=0. Your setup may be different but the page above would help you alot. 
+
+## Coding Environment
+I think it is worth noting that this was coded in VS Code using the arduino add on. I have been coding for many years now and I find this environment very pleasing to use and even makes me want to code more.
+I Used the built in library manager to add the PID library.
