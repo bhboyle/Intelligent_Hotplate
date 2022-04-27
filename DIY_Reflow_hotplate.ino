@@ -177,7 +177,7 @@ void loop()
       lcd.print("Stage - ");
       lcd.print(Names[heatStage]);
       lcd.setCursor(0, 3);
-      if (temperature > 50) // check the temperatue and display Hot if above 50 degrees
+      if (temperature > 50) // check the temperature and display Hot if above 50 degrees
       {
         lcd.print("       HOT!!!       ");
       }
