@@ -21,7 +21,7 @@ adjust the code and re-upload.
 #include <PID_v1.h>
 
 // Inputs Outputs
-int SSR = 3;
+int SSR = 3;       // the output pin that the SSR is connected to
 int thermoDO = 4;  // Data pin for MAX6675
 int thermoCS = 5;  // CS pin for MAX6675
 int thermoCLK = 6; // Clock pin for MAX6675
@@ -60,8 +60,7 @@ PID myPID(&Input, &Output, &Setpoint, 7, .01, 0, DIRECT); // create the PID obje
 void setup()
 {
 
-  // turn the PID on
-  myPID.SetMode(AUTOMATIC);
+  myPID.SetMode(AUTOMATIC); // turn the PID on
 
   pinMode(SSR, OUTPUT);   // Define the OUTPUT for the Solid State Relay
   digitalWrite(SSR, LOW); // Start with the SSR off
@@ -79,10 +78,11 @@ void setup()
 void loop()
 {
 
-  millis_now = millis();                                // track the current time
+  millis_now = millis(); // track the current time
+
   if (millis_now - millis_before_2 > temp_refresh_rate) // if it has been more than RefreshRate then get the current temperature
   {
-    millis_before_2 = millis();
+    millis_before_2 = millis();               // track the current time for the next loop
     temperature = thermocouple.readCelsius(); // read the temperature sensor
     Input = temperature;                      // set the input field for the PID loop
   }
