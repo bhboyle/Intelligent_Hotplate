@@ -39,7 +39,7 @@ Turning off the hotplate is done by pressing button 2 at any point.
 #define lowTempThreshold 50  // temperature threshold to start turn the LEDs from red to green
 #define highTempThreshold 80 // The temperature that the LEDs are fully red
 #define SSR 7                // the output pin that the SSR is connected to
-#define thermoDO 4           // Data pin for MAX6675
+#define thermoDO 4           // Data pin for MAX6675 (thermocouple amp)
 #define thermoCS 5           // CS pin for MAX6675
 #define thermoCLK 6          // Clock pin for MAX6675
 #define but_1 11             // Button 1 input
@@ -77,13 +77,14 @@ String Names[] = {
     "Reflow",
 };
 
-// instantiate the objects
+// instantiate objects
 MAX6675 thermocouple(thermoCLK, thermoCS, thermoDO); // Start MAX6675 SPI communication
 LiquidCrystal_I2C lcd(0x27, 20, 4);                  // Address could be 0x3f or 0x27
 PID myPID(&Input, &Output, &Setpoint, 7, .01, 0, DIRECT); // create the PID object
 Encoder myEnc(DT, CLK);                                   // setup the encoder
 Adafruit_NeoPixel pixels(NUMPIXELS, neopixelPIN, NEO_GRB + NEO_KHZ800);
 
+// Setup function is executed only once at startup
 void setup()
 {
 
@@ -174,30 +175,17 @@ void displayTemperature()
 
     if (tempReading > highTempThreshold)
     { // if temperature is HIGHER than tempThreshold turn the LEDs all RED
-      for (int i = 0; i < NUMPIXELS; i++)
-      {
-        pixels.setPixelColor(i, pixels.Color(150, 0, 0));
-        pixels.show(); // Send the updated pixel colors to the hardware.
-      }
+      sendColors(150, 0, 0);
     }
     else if (tempReading < lowTempThreshold)
     { // if temperature is LOWER than tempThreshold turn the LEDs all GREEN
-      for (int i = 0; i < NUMPIXELS; i++)
-      {
-        pixels.setPixelColor(i, pixels.Color(0, 150, 0));
-        pixels.show(); // Send the updated pixel colors to the hardware.
-      }
+      sendColors(0, 150, 0);
     }
     else
     { // if the temperature is in between the low and high temperature thresholds then
       // transition from green to red
-
       int temperatureColor = map(temperature - lowTempThreshold, lowTempThreshold, highTempThreshold, 1, 150);
-      for (int i = 0; i < NUMPIXELS; i++)
-      {
-        pixels.setPixelColor(i, pixels.Color(temperatureColor, 150 - temperatureColor, 0));
-        pixels.show(); // Send the updated pixel colors to the hardware.
-      }
+      sendColors(temperatureColor, 150 - temperatureColor, 0);
     }
     LEDtimer = millis(); // take note of the current time for the next pass of this function
   }
@@ -484,3 +472,13 @@ void smdCook()
   }
 
 } // End of SMDcook
+
+// This function is used by the displayTemperature function to send the colors to the LEDs
+void sendColors(int red, int green, int blue)
+{
+  for (int i = 0; i < NUMPIXELS; i++)
+  {
+    pixels.setPixelColor(i, pixels.Color(red, green, blue));
+    pixels.show(); // Send the updated pixel colors to the hardware.
+  }
+}
