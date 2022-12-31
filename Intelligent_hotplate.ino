@@ -30,20 +30,20 @@ Turning off the hotplate is done by pressing button 2 at any point.
 #include <Wire.h>
 #include "LiquidCrystal_I2C.h" //Download it here: http://electronoobs.com/eng_arduino_liq_crystal.php
 #include <PID_v1.h>
-#include <Encoder.h>
+#include <RotaryEncoder.h>
 #include <Adafruit_NeoPixel.h>
 
 // definitions - pin definitions and constants
-#define neopixelPIN 9        // The output pin for the Neopixels
+#define neopixelPIN 8        // The output pin for the Neopixels
 #define NUMPIXELS 8          // This how many Neopixels are connected to PIN
-#define lowTempThreshold 50  // temperature threshold to start turn the LEDs from red to green
-#define highTempThreshold 80 // The temperature that the LEDs are fully red
-#define SSR 7                // the output pin that the SSR is connected to
+#define lowTempThreshold 40  // temperature threshold to start turn the LEDs from red to green
+#define highTempThreshold 55 // The temperature that the LEDs are fully red
+#define SSR 9                // the output pin that the SSR is connected to
 #define thermoDO 4           // Data pin for MAX6675 (thermocouple amp)
 #define thermoCS 5           // CS pin for MAX6675
 #define thermoCLK 6          // Clock pin for MAX6675
-#define but_1 11             // Button 1 input
-#define but_2 12             // This pin will be used to end cooking
+#define but_1 10             // Button 1 input
+#define but_2 11             // This pin will be used to end cooking
 #define DT 2                 // Data pin for encoder
 #define CLK 3                // Clock pin for encoder
 
@@ -54,11 +54,11 @@ unsigned long LEDinterval = 500;             // how often in milliseconds to upd
 unsigned int millis_before, millis_before_2; // used for time tracking in the loop
 unsigned int millis_now = 0;                 // used to keep track of the current time of the loop
 int refresh_rate = 1000;                     // how often to update the display in milliseconds
-int temp_refresh_rate = 300;                 // how often to check the temperature in milliseconds
+int temp_refresh_rate = 100;                 // how often to check the temperature in milliseconds
 unsigned int seconds = 0;                    // used in the display to show how long the sequence has been running
 bool but_1_state = false;                    // used to track of the button has been pushed. used for debouncing the button
 unsigned long but_1_timer = 0;               // used for checking the time for debouncing the button push
-int max_temp = 260;                          // ****** this is the high temperature set point. *******
+int max_temp = 260;                          // ****** this is the high temperature set point for SMD mode. *******
 float temperature = 0;                       // this is the variable that holds the current temperature reading
 int heatStage = 0;                           // used for keeping track of where we are in the heating sequence
 int stage_2_set_point = 150;                 // this is the "soak" temperature set point
@@ -68,20 +68,20 @@ unsigned long soakTime = 100;                // how long to soak the board for i
 int reflowTime = 60;                         // how long to reflow the board for in seconds
 int cookMode = 1;                            // This is used to know what mode is selected
 boolean cookStatus = 0;                      // this is used to know if we are actively cooking
-String Names[] = {
-    // this is the text displayed in the display in the various stages
-    "Off",
-    "Heat",
-    "Soak",
-    "Blast", // I am sure there is a real name for this stage but I dont know it and this seemed cool...
-    "Reflow",
+String Names[] =                             // this is the text displayed in the display in the various stages for SMD cooking mode
+    {
+        "Off",
+        "Heat",
+        "Soak",
+        "Blast", // I am sure there is a real name for this stage but I dont know it and this seemed cool...
+        "Reflow",
 };
 
 // instantiate objects
-MAX6675 thermocouple(thermoCLK, thermoCS, thermoDO); // Start MAX6675 SPI communication
-LiquidCrystal_I2C lcd(0x27, 20, 4);                  // Address could be 0x3f or 0x27
-PID myPID(&Input, &Output, &Setpoint, 7, .01, 0, DIRECT); // create the PID object
-Encoder myEnc(DT, CLK);                                   // setup the encoder
+MAX6675 thermocouple(thermoCLK, thermoCS, thermoDO);           // Start MAX6675 SPI communication
+LiquidCrystal_I2C lcd(0x27, 20, 4);                            // Address could be 0x3f or 0x27
+PID myPID(&Input, &Output, &Setpoint, 7, .01, 0, DIRECT);      // create the PID object
+RotaryEncoder myEnc(DT, CLK, RotaryEncoder::LatchMode::TWO03); // setup the encoder
 Adafruit_NeoPixel pixels(NUMPIXELS, neopixelPIN, NEO_GRB + NEO_KHZ800);
 
 // Setup function is executed only once at startup
@@ -106,7 +106,8 @@ void setup()
 
   millis_before = millis();
   millis_now = millis();
-  displayTemperature();
+  displayTemperature(); // display the current temperature on the display and LEDs
+  displayMode();
 }
 
 // The main loop
@@ -115,29 +116,44 @@ void loop()
 
   // Read encoder and change the cooking mode variable based on the direction
   // the encoder is turned
-  int temp = myEnc.readAndReset();
+  displayTemperature(); // display the current temperature on the display and LEDs
+  myEnc.tick();         // maintain the encoder object
+
+  int temp = myEnc.getPosition(); // get the encoder reading
+
+  // if the encoder is turned, then increment or decrement
+  // the cookMode variable
   if (temp > 0)
   {
-
     cookMode++;
-    if (cookMode > 3)
+
+    if (cookMode >= 4)
     {
       cookMode = 1;
     }
+
+    displayMode();
+    myEnc.setPosition(0);
+    temp = 0;
   }
   else if (temp < 0)
   {
-
     cookMode--;
-    if (cookMode < 1)
+
+    if (cookMode <= 0)
     {
       cookMode = 3;
     }
+
+    displayMode();
+    myEnc.setPosition(0);
+    temp = 0;
   }
 
+  // if the encoder button is pressed then call the function
+  // that executes the selected cooking mode.
   if (!digitalRead(but_1))
   {
-    delay(150);
     switch (cookMode)
     {
     case 1:
@@ -156,9 +172,6 @@ void loop()
       break;
     }
   }
-
-  displayMode();
-  displayTemperature();
 
 } // end of void loop
 
@@ -181,12 +194,17 @@ void displayTemperature()
     { // if temperature is LOWER than tempThreshold turn the LEDs all GREEN
       sendColors(0, 150, 0);
     }
-    else
+    else if (tempReading >= lowTempThreshold && tempReading <= highTempThreshold)
     { // if the temperature is in between the low and high temperature thresholds then
       // transition from green to red
-      int temperatureColor = map(temperature - lowTempThreshold, lowTempThreshold, highTempThreshold, 1, 150);
+      int temperatureColor = map(tempReading, lowTempThreshold, highTempThreshold + 1, 0, 150);
       sendColors(temperatureColor, 150 - temperatureColor, 0);
     }
+
+    lcd.setCursor(0, 3); // Move the course to the bottom right corner of the screen
+    lcd.print("Temp: ");
+    lcd.print(tempReading, 1); // print the current temperature to the screen
+
     LEDtimer = millis(); // take note of the current time for the next pass of this function
   }
 } // end of displayTemperature function
@@ -195,23 +213,29 @@ void displayTemperature()
 void displayMode()
 {
 
+  // lcd.clear();
   lcd.setCursor(0, 0);
+  lcd.print("Select Mode...");
+
   switch (cookMode)
   {
   case 1:
+    lcd.setCursor(0, 2);
     lcd.print("Standard Mode   ");
     break;
   case 2:
+    lcd.setCursor(0, 2);
     lcd.print("Intelligent Mode");
     break;
   case 3:
+    lcd.setCursor(0, 2);
     lcd.print("SMD Mode        ");
+    break;
   default:
+    lcd.setCursor(0, 2);
     lcd.print("     FAULT!     ");
     break;
   }
-  lcd.setCursor(1, 0);
-  lcd.print("                ");
 }
 
 // This function will cook using the thermocouple
@@ -221,30 +245,37 @@ void intelligentCook()
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("Intelli-Cook");
-  lcd.setCursor(1, 0);
+  lcd.setCursor(0, 2);
   lcd.print("Set Temp:");
   int temperatureSetPoint = 0;
   int temp = 0;
 
   while (1) // start of the loop for the intelligent cooking loop
   {
-    temp = myEnc.readAndReset();
+    myEnc.tick();
+    temp = myEnc.getPosition();
 
     if (temp > 0) // keep the temperature within bounds
     {
-      temperatureSetPoint++;
+      temperatureSetPoint = temperatureSetPoint + 5;
       if (temperatureSetPoint > 600)
       {
         temperatureSetPoint = 600;
       }
+      lcd.setCursor(10, 2);
+      lcd.print(temperatureSetPoint);
+      myEnc.setPosition(0);
     }
     else if (temp < 0)
     {
-      temperatureSetPoint--;
+      temperatureSetPoint = temperatureSetPoint - 5;
       if (temperatureSetPoint < 0)
       {
         temperatureSetPoint = 0;
       }
+      lcd.setCursor(10, 2);
+      lcd.print(temperatureSetPoint);
+      myEnc.setPosition(0);
     }
     // this is the code that manages the cooking
 
@@ -260,9 +291,6 @@ void intelligentCook()
       myPID.Compute();                          // run the compute for the pid using the current variables
 
       analogWrite(SSR, Output); // We change the Duty Cycle of the relay
-
-      lcd.setCursor(1, 11);
-      lcd.print(String(temperature) + "   ");
     }
 
     // If button 2 is pressed, exit cooking.
@@ -270,10 +298,11 @@ void intelligentCook()
     {
       analogWrite(SSR, 0);
       delay(500);
+      displayMode();
       break;
     }
-    displayTemperature();
-  } // end of While loop for the intelligent cook mode
+    displayTemperature(); // display the current temperature on the display and LEDs
+  }                       // end of While loop for the intelligent cook mode
 
 } // ends of intelligentCook function
 
@@ -285,12 +314,13 @@ void regularCook()
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("Regular Cook");
-  lcd.setCursor(1, 0);
+  lcd.setCursor(0, 2);
   lcd.print("Set point:");
 
   while (1) // start loop for the heating and wait until the exit button is pressed to end cooking
   {
-    int temp = myEnc.readAndReset();
+    myEnc.tick();
+    int temp = myEnc.getPosition();
     if (temp > 0)
     {
       percent++;
@@ -298,6 +328,7 @@ void regularCook()
       {
         percent = 100;
       }
+      myEnc.setPosition(0);
     }
     else if (temp < 0)
     {
@@ -306,20 +337,27 @@ void regularCook()
       {
         percent = 0;
       }
+      myEnc.setPosition(0);
     }
-    analogWrite(SSR, map(percent, 0, 100, 0, 255));
-    lcd.setCursor(1, 11);
-    lcd.print(String(percent) + "%  ");
+    int mapValue = map(percent, 0, 100, 0, 255);
+    analogWrite(SSR, mapValue);
+
+    Serial.print("mapValue =");
+    Serial.println(mapValue);
+
+    lcd.setCursor(11, 2);
+    lcd.print(String(percent));
 
     // if the end button is pressed then exit cooking
     if (!digitalRead(but_2))
     {
       analogWrite(SSR, 0);
       delay(100);
+      displayMode();
       break;
     }
-    displayTemperature();
-  } // end of While loop
+    displayTemperature(); // display the current temperature on the display and LEDs
+  }                       // end of While loop
 
 } // end of regular cook function
 
@@ -335,12 +373,12 @@ void smdCook()
   while (1)
   {
 
-    displayTemperature();
-    millis_now = millis(); // track the current time
+    displayTemperature(); // display the current temperature on the display and LEDs
+    // millis_now = millis(); // track the current time
 
-    if (millis_now - millis_before > temp_refresh_rate) // if it has been more than RefreshRate then get the current temperature
+    if (millis() - millis_before_2 > temp_refresh_rate) // if it has been more than RefreshRate then get the current temperature
     {
-      millis_before = millis();                 // track the current time for the next loop
+      millis_before_2 = millis();               // track the current time for the next loop
       temperature = thermocouple.readCelsius(); // read the temperature sensor
       Input = temperature;                      // set the input field for the PID loop
     }
@@ -413,7 +451,7 @@ void smdCook()
       delay(5000);
     }
 
-    if (millis_now - millis_before > refresh_rate) // every second, update the display
+    if (millis() - millis_before > refresh_rate) // every second, update the display
     {
       millis_before = millis(); // track the current time
       seconds++;                // increment the time counter
@@ -425,14 +463,6 @@ void smdCook()
         digitalWrite(SSR, LOW);
         lcd.clear();
         lcd.setCursor(0, 0);
-        lcd.print("Temp: ");
-        lcd.print(temperature, 1);
-        lcd.setCursor(0, 1);
-        lcd.print("SSR: OFF");
-        lcd.setCursor(0, 2);
-        lcd.print("Stage - ");
-        lcd.print(Names[heatStage]);
-        lcd.setCursor(0, 3);
         if (temperature > 50) // check the temperature and display Hot if above 50 degrees
         {
           lcd.print("       HOT!!!       ");
@@ -441,14 +471,23 @@ void smdCook()
         {
           lcd.print("NOT RUNNING");
         }
+        lcd.setCursor(0, 1);
+        lcd.print("SSR: OFF");
+        lcd.setCursor(0, 2);
+        lcd.print("Stage - ");
+        lcd.print(Names[heatStage]);
+        // lcd.setCursor(0, 3);
+        // lcd.print("Temp: ");
+        // lcd.print(temperature, 1);
+
       } // end of heatStage == 0
 
       else if (heatStage > 0 && heatStage < 7) // display the appropriate thing if a sequence is running
       {
         lcd.clear();
         lcd.setCursor(0, 0);
-        lcd.print("Temp: ");
-        lcd.print(temperature, 1);
+        lcd.print("RUNNING - PWM: ");
+        lcd.print(Output, 1);
         lcd.setCursor(0, 1);
         lcd.print("SSR: ON ");
         lcd.print("Time: ");
@@ -456,9 +495,10 @@ void smdCook()
         lcd.setCursor(0, 2);
         lcd.print("Stage - ");
         lcd.print(Names[heatStage]);
-        lcd.setCursor(0, 3);
-        lcd.print("RUNNING - PWM: ");
-        lcd.print(Output, 1);
+        // lcd.setCursor(0, 3);
+        // lcd.print("Temp: ");
+        // lcd.print(temperature, 1);
+
       } // end of display update for all active stages
     }   // end of millis_now - millis_before > refresh_rate
 
@@ -467,13 +507,16 @@ void smdCook()
     {
       analogWrite(SSR, 0);
       delay(500);
+      lcd.clear();
+      displayMode();
       break;
     }
   }
 
 } // End of SMDcook
 
-// This function is used by the displayTemperature function to send the colors to the LEDs
+// This function is used by the displayTemperature
+// function to send the colors to the LEDs
 void sendColors(int red, int green, int blue)
 {
   for (int i = 0; i < NUMPIXELS; i++)
